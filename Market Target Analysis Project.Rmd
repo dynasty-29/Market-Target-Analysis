@@ -1,0 +1,993 @@
+---
+title: "Market Target analysis"
+author: "The Geek Squad"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    df: paged
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    number_sections: yes
+    theme: readable
+    highlight: haddock
+    code_download: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **Market Target Analysis**
+
+### **Introduction**
+
+Term deposits are a major source of income for a bank. A term deposit is a cash investment held at a financial institution. Your money is invested for an agreed rate of interest over a fixed amount of time, or term. The bank has various outreach plans to sell term deposits to their customers such as email marketing, advertisements, telephonic marketing, and digital marketing.
+
+### **Problem Statement**
+
+Telephonic marketing campaigns still remain one of the most effective way to reach out to people. However, they require huge investment as large call centers are hired to actually execute these campaigns. Hence, it is crucial to identify the customers most likely to convert beforehand so that they can be specifically targeted via call.
+The data is related to direct marketing campaigns (phone calls) of a Portuguese banking institution. 
+
+### **Objectives**
+
+#### **Main Objective**
+
+To build a model that predicts if the client will subscribe to a term deposit or not
+
+
+#### **Specific Objectives**
+
+1. To determine whether having a housing loan affected whether a client subscribed to a term deposit or not?
+2. To find out if having a Personal loan affected whether a client subscribed to a term deposit or not?
+3. To determine if a previous campaign success led to current campaign success to term deposit subscription?
+4. To determine whether having credit on default affects term deposit subscription?
+5. To determine if Multiple calls(campaign) contact led to a term deposit or not?
+
+
+### **Metrics Of success**
+1. Define the question, the metric for success, the context, experimental design taken and the appropriateness of the available data to answer the given question.
+
+2. Find and deal with outliers, anomalies, and missing data within the data set.
+
+3. Perform EDA.
+
+4. Building a model to predict if a client will subscribe to  a term deposit or not ( best model should have a Balanced Accuracy score above 80)
+
+5. From our insights provide a conclusion and recommendation.
+
+
+# **Data Understanding**
+
+Loading Important Libraries
+```{r message = FALSE}
+library(data.table)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+
+We have two sets of data set i.e train and test , will load them separately as follows: 
+
+**a. Loading the train data set**
+```{r  message = FALSE}
+library(readr)
+train <- read_delim("train.csv", delim = ";", 
+    escape_double = FALSE, trim_ws = TRUE)
+```
+
+Previewing first six rows
+```{r}
+head(train)
+```
+
+
+
+Checking number of rows and columns
+```{r}
+dim(train)
+```
+We have 17 rows and 45211 columns
+
+
+Checking the data types
+```{r}
+str(train)
+```
+We have a mixture of numeric, and categorical variables
+
+
+**b. Loading the test data set**
+
+```{r  message = FALSE}
+library(readr)
+test <- read_delim("test.csv", delim = ";", 
+    escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+Previewing the first six rows
+```{r}
+head(test)
+```
+
+Checking the number of rows and columns
+```{r}
+dim(test)
+```
+We have 17 columns and 4521 rows
+
+
+Previewing our test data types
+```{r}
+str(test)
+```
+
+
+# **Data cleaning and Preparation**
+
+For cleaning will start cleaning the train data set
+
+**Train data set** 
+
+a. Checking for null values
+```{r}
+is.null(train)
+```
+```{r}
+colSums(is.na(train))
+```
+
+We have no null values
+
+
+b. checking for duplicates
+```{r}
+duplicated_rows <- train[duplicated(train),]
+duplicated_rows
+```
+We have no duplicates
+
+
+
+c. Checking for outliers
+
+```{r}
+boxplot(train$balance, ylab = "average yearly balance, in euros ")
+```
+We have outliers on the balance column.
+ 
+ 
+ 
+```{r}
+ggplot(train) +
+  aes(x = "", y =age) +
+  geom_boxplot(fill = "#0c4c8a") +
+  theme_minimal()
+```
+We have outlier in age
+
+
+```{r}
+ggplot(train) +
+  aes(x = "", y =day) +
+  geom_boxplot(fill = "#0c4c8a") +
+  theme_minimal()
+```
+There are no outliers on day column.
+
+
+```{r}
+boxplot(train$duration, ylab = "last contact duration, in seconds ")
+```
+
+
+```{r}
+boxplot(train$campaign, ylab = "number of contacts performed for this client")
+```
+
+Most of the numeric columns have outliers but will not drop them since they are significant for our analysis.
+
+
+
+
+**Test data set**
+
+a. checking for null values
+```{r}
+is.null(test)
+```
+
+
+```{r}
+colSums(is.na(test))
+```
+
+We have no null values
+
+
+b. checking for duplicates
+```{r}
+duplicated_rows <- test[duplicated(test),]
+duplicated_rows
+```
+We have no duplicates
+
+
+
+Will combine the two tables for EDA
+```{r}
+df <- rbind(train, test)
+head(df)
+```
+
+
+# **Exploratory Data Analysis**
+
+## **1. Uni-variate Analysis**
+
+**Age distribution of the customers**
+
+```{r message=FALSE}
+hist((df$age),  
+main = "Customer age distribution",
+     xlab = 'Age', 
+     ylab = 'count',
+     col = "blue")
+```
+
+
+The age bracket of most clients was 35 years, there was an extreme of 95 years and 18 years
+
+
+**Education level Distribution of the customers**
+
+```{r}
+edu <- (df$education)
+edu.frequency <- table(edu)
+edu.frequency
+```
+
+
+```{r}
+barplot(edu.frequency,
+  main="Distribution of Education level among the customer",
+  xlab="Education Level",
+  ylab = "Frequency",
+  col=c("magenta","blue", "green", "yellow"),
+  )
+```
+
+
+
+Most of our customers had a form of education with highest having already reached secondary education followed by tertiary level and the least were those who did not disclose thier level of education.
+
+
+**Job types distribution**
+
+```{r}
+job <- (df$job)
+job.frequency <- table(job)
+job.frequency
+```
+
+
+
+```{r}
+barplot(job.frequency,
+  main="Customers Job Type Distribution",
+  xlab="Job Type",
+  ylab = "Frequency")
+```
+
+
+
+The clientele for the campaign involved most personnel working in blue collar jobs, management and administrative levels with the least being students and thosw who didn't disclose their jobs.
+
+
+
+**Marital status**
+```{r}
+marital <- (df$marital)
+marital.frequency <- table(marital)
+marital.frequency
+```
+
+
+```{r}
+barplot(marital.frequency,
+  main="Customers Marital Status",
+  xlab="Marital Status",
+  ylab = "Frequency",
+  col=c("magenta","blue", "red"),
+  )
+```
+
+
+Most of the customers participating in the campaigns were married, followed by sigle people and finally divorced.
+
+**Credit status**
+```{r}
+default <- (df$default)
+default.frequency <- table(default)
+default.frequency
+```
+
+
+```{r}
+barplot(default.frequency,
+  main="Distribution of Customers on Default Credit",
+  xlab="Has Credit in default",
+  ylab = "Frequency",
+  col=c("magenta","blue"),
+  )
+```
+
+
+The graph above shows that most customers don't have credit on default.
+
+
+**Housing Loan**
+
+```{r}
+housing <- (df$housing)
+housing.frequency <- table(housing)
+housing.frequency
+```
+
+
+```{r}
+barplot(housing.frequency,
+  main="Customer Housing Loan Distribution",
+  xlab="Housing Loan",
+  ylab = "Frequency",
+  col=c("magenta","blue"),
+  )
+```
+
+
+Most of the customers have a housing loan. 
+
+
+**Personal loan**
+```{r}
+loan <- (df$loan)
+loan.frequency <- table(loan)
+loan.frequency
+```
+
+
+```{r}
+barplot(loan.frequency,
+  main="Customer's Personal Loan Distribution  Status",
+  xlab="Personal Loan",
+  ylab = "Frequency",
+  col=c("magenta","blue"),
+  )
+```
+
+
+Most customers don't have a personal loan.
+
+
+**Communication type**
+```{r}
+contact <- (df$contact)
+contact.frequency <- table(contact)
+contact.frequency
+```
+
+
+```{r}
+barplot(contact.frequency,
+  main="Customers Mode of Communication",
+  xlab="Communication type",
+  ylab = "Frequency",
+  col=c("magenta","blue", "grey"),
+  )
+```
+
+
+The marketing team contacted most of the customers via cellphone.
+
+
+**Outcome of the previous marketing campaign**
+```{r}
+outcome <- (df$poutcome)
+outcome.frequency <- table(outcome)
+outcome.frequency
+```
+
+
+```{r}
+barplot(outcome.frequency,
+  main="Previous Marketing Campaign Outcome",
+  xlab="Previous campaign Outcome",
+  ylab = "Frequency",
+  col=c("magenta","blue", "grey", "black"),
+  )
+```
+
+
+The graph shows most customers outcome of the previous marketing campaign to be unknown, with the list of the current focus group ending in success
+
+
+**Subscription to term deposit**
+```{r}
+sb <- (df$y)
+sb.frequency <- table(sb)
+sb.frequency
+```
+
+```{r}
+barplot(sb.frequency,
+  main="Term Deposit Subscription",
+  xlab="Subscription to term deposit",
+  ylab = "Frequency",
+  col=c("Purple","green"),
+  )
+```
+
+
+The graph shows the outcome towards term deposit subscription where most customers did not subscribe.
+
+
+## **2. Bivariate Analysis**
+
+```{r message=FALSE}
+library(reshape2)
+```
+
+**Comparing age vs average yearly balance**
+```{r}
+plot((df$age), (df$balance), 
+     main = "Age vs Average yearly Balance",
+     xlab = 'Age', 
+     ylab = 'Average yearly balance')
+```
+
+
+There is high concentration of average yearly balance of most customers despite age to be on the lower limit, however, around age 40 to 60 years we have outliers on the upper limit.
+
+
+**Does having a housing loan affected whether a client subscribed to a term deposit or not?**
+
+```{r message=FALSE}
+library(plyr)
+counts <- ddply(df, .(df$y, df$housing), nrow)
+names(counts) <- c("term deposit", "housing loan", "Freq")
+counts
+```
+The table shows that most people with housing loan didn't no subscribe to a term deposit.
+
+
+We can see this visually
+```{r}
+ggplot(df, aes(fill=y, x=housing)) + geom_bar(position = "dodge" ) + labs(title = 'Housing loan vs Term deposit subscription', 
+    x = 'Housing Loan', y = 'Customer count')
+```
+
+
+We can therefore answer our objective that indeed having a housing loan affects if someone subscribes to a term deposit or not. We can clearly see most of the people who subscribed to a term deposit did not have a housing loan. 
+
+
+**Does having a Personal loan affected whether a client subscribed to a term deposit or not?**
+```{r}
+loan_counts <- ddply(df, .(df$y, df$loan), nrow)
+names(loan_counts) <- c("Term deposit", "Personal loan", "Freq")
+loan_counts
+```
+The table shows that most people with personal loan did not subscribe to a term deposit.
+
+```{r}
+ggplot(df, aes(fill=y, x=loan)) + geom_bar(position = "dodge" ) + labs(title = 'Personal loan vs Term deposit subscription', 
+    x = 'Personal Loan', y = 'Customer count')
+```
+
+
+
+We can therefore answer our objective that indeed having a personal loan affects if someone subscribes to a term deposit or not. We can clearly see most of the people who subscribed to a term deposit did not have a personal loan. 
+
+
+
+
+**Does previous campaign success lead to current campaign success to term deposit subscription?**
+```{r}
+previous_outcome <- ddply(df, .(df$y, df$poutcome), nrow)
+names(previous_outcome) <- c("Term deposit", "Previous outcome", "Freq")
+previous_outcome
+```
+From this table we can see previous success indeed lead to current success.
+
+```{r}
+ggplot(df, aes(fill=y, x=poutcome)) + geom_bar(position = "dodge" ) + labs(title = 'Previous campaign outcome vs Term deposit subscription', 
+    x = 'Previous campaign outcome', y = 'Customer count')
+```
+
+
+
+**Does having credit on default affect term deposit subscription?**
+```{r}
+default_count <- ddply(df, .(df$y, df$default), nrow)
+names(default_count) <- c("term deposit", "Credit by Default", "Freq")
+default_count
+```
+
+```{r}
+ggplot(df, aes(fill=y, x=default)) + geom_bar(position = "dodge" ) + labs(title = 'Customers default credit status vs Term deposit subscription', 
+    x = 'Customers default credit status', y = 'Customer count')
+```
+
+
+
+The graph and table above shows having a credit on default doesn't lead to term deposit subscription. 
+
+
+**Job type vs Term deposit subscription**
+```{r}
+job_count <- ddply(df, .(df$job, df$y), nrow)
+names(job_count) <- c("Job type", "term deposit", "Freq")
+job_count
+```
+The table above shows that most people in management subscribed to a term deposit, followed by blue collar and administrative.
+
+
+**Marital status vs Term deposit subscription**
+```{r}
+maritalstatus <- ddply(df, .(df$marital, df$y), nrow)
+names(maritalstatus) <- c("maritalstatus", "Term Deposit", "Freq")
+maritalstatus
+```
+
+```{r}
+ggplot(df, aes(fill=y, x=marital)) + geom_bar(position = "dodge" ) + labs(title = 'Customers marital status vs Term deposit subscription', 
+    x = 'Customers Marital status', y = 'Customer count')
+```
+
+
+Most married people subscribed to term deposit, however, they were also the majority in the campaign. 
+
+
+
+```{r}
+edu_count<- ddply(df, .(df$education, df$y), nrow)
+names(edu_count) <- c("Education level", "term deposit", "Freq")
+edu_count
+```
+
+
+```{r}
+ggplot(df, aes(fill=y, x=education)) + geom_bar(position = "dodge" ) +labs(title = 'Customers education level vs Term deposit subscription', 
+    x = 'Customers education level', y = 'Customer count')
+```
+The graph above shows most customers as previously observed had some level of secondary education. However, proportionally most tertiary educational holder actually subscribed to term deposit compared to other levels of education.
+
+
+**Multiple calls(campaign) contact led to a term deposit or not?**
+```{r}
+campaign_count<- ddply(df, .(df$campaign, df$y), nrow)
+names(campaign_count) <- c("Campaign", "term deposit", "Freq")
+campaign_count
+```
+The table above shows that multiple contact during the campaign did not result to subscription. Most the people who actually subscribed to term deposit were only contacted once.
+
+
+
+## **3. Multivariate Analysis**
+
+
+Getting a summary of the variables
+```{r}
+summary(df)
+```
+The summary above shows the following:
+
+      * The minimum age was 18 while the maximum was 95 years while the mean was 40.
+      
+      * The minimum customer's average yearly balance was -8019, the maximum was 102127 while the mean was 1368.
+      
+      * The minimum number of days that passed by after the client was last contacted from a previous campaign was 1 day, the maximum was 31 days while the mean was 15 days.
+      
+      * The minimum number of contacts performed during this campaign and for a particular client was 1, the maximum was 63 while the mean was 2. 
+      
+      
+      
+
+**Checking for correlation**
+```{r message=FALSE}
+library(corrplot)
+```
+
+
+```{r}
+numeric <- df %>%
+  select_if(is.numeric) %>%
+  select("age", "balance", "duration", "day", "campaign", "pdays", "previous")
+```
+
+
+```{r}
+corrplot(cor(numeric))
+```
+There is no correlation among the numeric columns observed
+
+
+
+# **Modeling**
+
+Will be performing our modeling using supervised method then challenge with unsupervised learning.
+
+Loading important libraries
+```{r message=FALSE}
+library(caTools)
+library(party)
+library(dplyr)
+library(magrittr)
+library(randomForest)
+library(e1071)
+library(caTools)
+library(class)
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(caretEnsemble)
+library(psych)
+library(Amelia)
+library(mice)
+library(GGally)
+```
+
+
+## **A. Pre-processing**
+
+Previewing our train data set.
+```{r}
+head(df)
+```
+
+
+Selecting numeric columns
+```{r}
+num <- df[, c(1,6,10,12:15)]
+head(num)
+```
+
+
+Selecting categorical columns
+```{r}
+cat <- df[, c(2:5,7:9,11,16,17)]
+head(cat)
+```
+
+Label encoding our categorical columns
+```{r message=FALSE}
+library(superml)
+```
+
+```{r}
+label <- LabelEncoder$new()
+cat$job <- label$fit_transform(cat$job)
+cat$marital <- label$fit_transform(cat$marital)
+cat$education <- label$fit_transform(cat$education)
+cat$default <- label$fit_transform(cat$default)
+cat$housing <- label$fit_transform(cat$housing)
+cat$loan <- label$fit_transform(cat$loan)
+cat$contact <- label$fit_transform(cat$contact)
+cat$month <- label$fit_transform(cat$month)
+cat$poutcome <- label$fit_transform(cat$poutcome)
+cat$y <- label$fit_transform(cat$y)
+head(cat)
+```
+
+joining now categorical and numeric data
+```{r}
+data <-cbind(num, cat)
+head(data)
+```
+
+## **B. Feature selection**
+
+Will also perform feature selection to remove redundant feature in our data set.
+
+a. Getting a correlation Matrix
+```{r}
+correlationMatrix <- cor(data)
+```
+
+b. Choosing the highly correlated features
+```{r}
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.70)
+```
+
+
+c. Removing the redundant (highly correlated) features
+```{r}
+Dataset2<-data[-highlyCorrelated]
+```
+
+
+d. Previews the correlation matrix
+```{r}
+par(mfrow = c(1, 2))
+corrplot(correlationMatrix, order = "hclust")
+corrplot(cor(Dataset2), order = "hclust")
+```
+
+
+We can see from the graphs above we don't have highly correlated feature so none was removed.
+
+
+
+## **C. Dealing with class Imbalance**
+
+Previewing our classes
+```{r}
+head(data)
+```
+
+```{r}
+class<- (data$y)
+class.frequency <- table(class)
+class.frequency
+```
+
+
+From this frequency table we have a huge class imbalance and will deal with them before moving forward.
+
+```{r}
+library(imbalance)
+```
+
+Selecting the two class in the data set
+```{r}
+df_p <- which(data$y == "0")
+df_n <- which(data$y == "1")
+```
+
+
+**Under sampling the majority class.** 
+```{r}
+nsample <- 5810
+pick_negative <- sample(df_p, nsample)
+
+undersample_df1 <- data[c(df_n, pick_negative), ]
+
+dim(undersample_df1)
+```
+The final product we have a new data set with 11620 rows and 17 columns
+
+Previewing our response variable class
+```{r}
+table(undersample_df1$y)
+```
+
+Now will go ahead and split our data into train and test data set
+
+```{r}
+train.size = floor(0.75*nrow(undersample_df1))
+train.index = sample(1:nrow(undersample_df1), train.size)
+train.set = undersample_df1[train.index,]
+test.set = undersample_df1[-train.index,]
+x.train = train.set[,-17] 
+x.test = test.set[,-17] 
+y.train = train.set[,17] 
+y.test = test.set[,17]
+```
+
+
+
+## **KNN Classifier Model**
+
+
+
+Fitting KNN model
+```{r}
+knn.3 <- knn(train = x.train, test = x.test, cl = y.train , k = 5)
+```
+
+
+```{r}
+def = table(predicted = knn.3, true = y.test)
+def
+```
+
+```{r}
+confusionMatrix(def)
+```
+The model gives us a balanced accuracy of 76.08 before any hyper parameter tuning is performed.
+
+**Parameter tuning**
+
+creating Standardization function
+```{r}
+standardize = function(x){
+  z <- (x - mean(x)) / sd(x)
+  return( z)
+}
+```
+
+applying the function to the data set
+```{r}
+undersample_df2 <-
+  apply(undersample_df1, 2, standardize)
+head(undersample_df2)
+```
+```{r}
+train1.size = floor(0.75*nrow(undersample_df2))
+train1.index = sample(1:nrow(undersample_df1), train1.size)
+train1.set = undersample_df2[train1.index,]
+test1.set = undersample_df2[-train1.index,]
+x.train1 = train1.set[,-17] 
+x.test1 = test1.set[,-17] 
+y.train1 = train1.set[,17] 
+y.test1 = test1.set[,17]
+```
+
+
+```{r}
+knn5 <- knn(train = x.train1, test = x.test1, cl = y.train1 , k = 5)
+```
+
+
+```{r}
+defp = table(predicted = knn5, true = y.test1)
+```
+
+```{r}
+confusionMatrix(defp)
+```
+After hyper parameter tuning our model improved to 78.49% balanced accuracy.
+
+
+
+## **Naive Bayes**
+
+Fitting Naive Bayes Model
+```{r}
+set.seed(120)  
+classifier_cl <- naiveBayes(y.train ~ ., data = x.train)
+```
+
+
+Predicting on test data'
+```{r}
+y_pred <- predict(classifier_cl, newdata = x.test)
+```
+
+
+Confusion Matrix
+```{r}
+cm <- table(y.test, y_pred)
+cm
+```
+
+Model Evaluation
+```{r}
+confusionMatrix(cm)
+```
+The model had a balanced accuracy of 74.79% which was lower than knn and also below our metrics of success
+
+
+
+
+
+
+## **SVM**
+
+Fitting SVM to the Training set
+```{r}
+classifier = svm(formula = y.train ~ .,
+                 data = x.train,
+                 type = 'C-classification',
+                 kernel = 'linear')
+```
+
+
+Predicting the Test set results
+```{r}
+y_pred = predict(classifier, newdata = x.test)
+```
+
+
+Making the Confusion Matrix
+```{r}
+cm = table(y.test, y_pred)
+cm
+```
+
+
+
+```{r}
+confusionMatrix(cm)
+```
+
+The SVM model had a balanced accuracy of 81.14% making the best model compared to the previous two, and also qualifies with our metric of success.
+
+
+
+
+## **Unsupervised Learning using KNN Clustering Method**
+
+
+Fitting the KNN Clustering model using k=20
+```{r}
+knn.20 <- knn(train=x.train, test=x.test, cl=y.train, k=20)
+```
+
+
+
+Proportion of correct classification 
+```{r}
+Accuracy <- 100 * sum(y.test == knn.20)/NROW(y.test)
+Accuracy
+```
+
+Our model accuracy of prediction was 77% using k=20
+
+
+Check prediction against actual value in tabular form
+```{r}
+knnc <- table(knn.20 ,y.test)
+knnc
+```
+```{r}
+confusionMatrix(knnc)
+```
+
+
+Fitting the KNN Clustering model using k=5
+```{r}
+knn.5 <- knn(train=x.train, test=x.test, cl=y.train, k=5)
+```
+
+
+
+Proportion of correct classification 
+```{r}
+Accuracy <- 100 * sum(y.test == knn.5)/NROW(y.test)
+Accuracy
+```
+
+ 
+
+Check prediction against actual value in tabular form
+```{r}
+knnc5 <- table(knn.5 ,y.test)
+knnc5
+```
+```{r}
+confusionMatrix(knnc5)
+```
+The accuracy drop when we use less k neighbors from 77% to 76%.
+
+
+
+# **Conclusion**
+
+  * From our models above we are able to see they performed differently summarized below:
+    * KNN model = 78.49% Balanced accuracy
+    * Naive Bayes = 74.79% Balanced accuracy
+    * SVM = 81.14% Balanced accuracy
+    * KNN Clustering = 77% Balanced accuracy
+    
+  * Overall the best model to determine is a customer subscribe to term deposit or not is SVM.
+
+  * Most Customers who will subscribe to term deposit are those without loan (housing and personal Loan).
+
+  * Making multiple campaign calls to the same customer doesn't result in them subscribing to term deposit.
+
+  * Having credit on default doesn't equate term deposit subscription.
+
+## **Recommendation**
+
+For effectiveness of the campaigns the marketing team would:
+
+      * Don't call one customer multiple times (more than 2 times) instead spread that time to other customers.
+      
+      * Be aware people with previous loan (any form) might not be willing to subscribe to a term deposit.
+      

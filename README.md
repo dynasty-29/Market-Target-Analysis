@@ -16,11 +16,11 @@ To build a model that predicts if the client will subscribe to a term deposit or
 
 ### **Specific Objectives**
 
-1. To determine whether having a housing loan affected whether a client subscribed to a term deposit or not?
-2. To find out if having a Personal loan affected whether a client subscribed to a term deposit or not?
-3. To determine if a previous campaign success led to current campaign success to term deposit subscription?
-4. To determine whether having credit on default affects term deposit subscription?
-5. To determine if Multiple calls(campaign) contact led to a term deposit or not?
+1. To determine whether having a housing loan affected whether a client subscribed to a term deposit or not.
+2. To find out if having a Personal loan affected whether a client subscribed to a term deposit or not.
+3. To determine if a previous campaign success led to current campaign success to term deposit subscription.
+4. To determine whether having credit on default affects term deposit subscription.
+5. To determine if Multiple calls(campaign) contact led to a term deposit or not.
 
 
 ## **Metrics Of success**

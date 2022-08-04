@@ -28,7 +28,7 @@ To build a model that predicts if the client will subscribe to a term deposit or
 
 2. Find and deal with outliers, anomalies, and missing data within the data set.
 
-3. Perform EDA.
+3. Perform EDA
 
 4. Building a model to predict if a client will subscribe to  a term deposit or not ( best model should have a Balanced Accuracy score above 80)
 
